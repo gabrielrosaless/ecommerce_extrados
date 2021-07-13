@@ -4,14 +4,14 @@ import { createProducto, getProductos, updateProductoById, deleteProductoById } 
 
 const router = Router();
 
-router.get('/productos', getProductos);
+router.get('/', getProductos);
 
-router.post('/productos/add', createProducto );
+router.post('/add', createProducto );
 
-router.put('/productos/update/:id', updateProductoById );
+router.put('/update/:id', updateProductoById );
 
 
-router.put('/productos/delete/:id', deleteProductoById );
+router.put('/delete/:id', deleteProductoById );
 
 
 

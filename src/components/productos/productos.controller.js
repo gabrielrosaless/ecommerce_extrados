@@ -9,7 +9,7 @@ export const getProductos = async (req,res) => {
         const result = await pool.request().query(queries.getAllProductos); // ejecuto la consulta
         res.json(result.recordset);
     } catch (error) {
-        res.status(500);
+        res.status(400);
         res.send(error.message);
     }
 };
@@ -39,7 +39,7 @@ export const createProducto = async (req, res) => {
 
         res.json({nombre, descripcion, imagen, precio, marca});
     } catch (error) {
-        res.status(500);
+        res.status(400);
         res.send(error.message);
     }
 }
@@ -55,19 +55,25 @@ export const updateProductoById = async (req,res) => {
         return res.status(400).json({msg: 'Bad request. Por favor llena todo los campos.'})
     }
 
-    const pool = await getConnection();
-    await pool.request()
-        .input('id',sql.Int, id)
-        .input('nombre',sql.VarChar, nombre)
-        .input('descripcion',sql.VarChar,descripcion)
-        .input('imagen',sql.VarChar,imagen)
-        .input('marca',sql.VarChar, marca)
-        .input('stock',sql.Int, stock)
-        .input('precio',sql.Float, precio)
-        .query(queries.updateProductoById);
+    try {
+        const pool = await getConnection();
+        await pool.request()
+            .input('id',sql.Int, id)
+            .input('nombre',sql.VarChar, nombre)
+            .input('descripcion',sql.VarChar,descripcion)
+            .input('imagen',sql.VarChar,imagen)
+            .input('marca',sql.VarChar, marca)
+            .input('stock',sql.Int, stock)
+            .input('precio',sql.Float, precio)
+            .query(queries.updateProductoById);
 
+        res.json({nombre, descripcion, imagen, precio, marca});
 
-    res.json({nombre, descripcion, imagen, precio, marca})
+    } catch (error) {
+        res.status(400);
+        res.send(error.message);
+    }
+    
 
 };
 
@@ -76,12 +82,15 @@ export const deleteProductoById = async (req,res) => {
 
     const{ id } = req.params;
 
-    const pool = await getConnection();
-    await pool.request()
-        .input('id',sql.Int, id)
-        .query(queries.deleteProductoById);
+    try {
+        const pool = await getConnection();
+        await pool.request()
+            .input('id',sql.Int, id)
+            .query(queries.deleteProductoById);
 
-
-    res.json("Producto eliminado")
-
+        res.json("Producto eliminado")
+    } catch (error) {
+        res.status(400);
+        res.send(error.message);
+    }
 };
