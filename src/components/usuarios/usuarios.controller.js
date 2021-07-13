@@ -1,4 +1,3 @@
-
 import {getConnection , sql, queries } from '../../database';
 import config from '../../config';
 const jwt = require('jsonwebtoken');
@@ -72,7 +71,7 @@ const validateUsuario = async (req,res,usuario) => {
 
 
 
-export const loginUsuario = async (req, res) => {
+export const login = async (req, res) => {
         
     // validaciones
     const { usuario, contraseña } = req.body;
@@ -90,12 +89,12 @@ export const loginUsuario = async (req, res) => {
         
         const user = {
             "usuario": usuario,
-            "rol": contraseña
+            "rol": result.rol
         }
 
         // create token
-        const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife})
-        const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: config.refreshTokenLife})
+        const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife});
+        const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: config.refreshTokenLife});
     
         res.header('authorize', token).json({
             error: null,
@@ -146,3 +145,65 @@ export const refreshToken = (req,res) => {
         });
     }
 }
+
+
+
+export const updateRol = async (req,res) => {
+        
+    const{ id } = req.params;
+    const{ usuario } = req.body;
+
+    try {
+        
+        const result = await validateUsuario(req,res,usuario);
+        
+        if(result && result.rol == 1){
+            const pool = await getConnection();
+            const respuesta = await pool.request()
+                .input('id',sql.Int, id)
+                .query(queries.updateRol);
+            
+            if (respuesta.rowsAffected > 0){
+                res.json({
+                    error: null,
+                    mensaje: "Rol actualizado."
+                });
+            }
+            else{
+                return res.status(400).json({
+                    error: true,
+                    mensaje: 'El usuario al que desea cambiar el rol no existe.'
+                });
+            }   
+        }
+        else{
+            return res.status(400).json({
+                error: true,
+                mensaje: 'Acción no autorizada.'
+            });
+        }
+    } catch (error) {
+        res.status(400);
+        res.send(error.message);
+    }
+}
+
+// export const logout = (req,res) => {
+    
+//     const authHeader = req.headers["authorize"];
+    
+//     // const user = {
+//     //     "usuario": "",
+//     //     "rol": ""
+//     // };
+//     //const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife});
+    
+//     jwt.sign(authHeader, "", { expiresIn: 1 } , (logout, err) => {
+//         if (logout) {
+//             res.send({mensaje: 'Logout exitoso' });
+//         } else {
+//             res.send({error: true, mensaje:'Error en el logout.'});
+//         }
+//     });
+// }
+

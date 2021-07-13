@@ -18,7 +18,7 @@ app.use(express.urlencoded({extended:false}))
 
 
 // Routes middlewares
-app.use('/api/productos', productosRoutes);
+app.use('/api/productos', verifyToken,productosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/admin', verifyToken, dashboardRoutes);
 
