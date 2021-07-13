@@ -1,5 +1,5 @@
 
-import {getConnection , sql, queries } from '../database';
+import {getConnection , sql, queries } from '../../database';
 
 
 export const getProductos = async (req,res) => {
