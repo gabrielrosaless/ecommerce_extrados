@@ -5,8 +5,8 @@ import {config} from 'dotenv';
 config();
 
 export default {
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 4000,
     "tokenLife": 900,
-    "refreshTokenLife": 86400
+    "refreshTokenLife": 3600
 }
 

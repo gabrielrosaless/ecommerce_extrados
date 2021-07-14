@@ -1,5 +1,4 @@
 import {Router} from 'express';
-
 import { createProducto, getProductos, updateProductoById, deleteProductoById } from './productos.controller';
 
 const router = Router();

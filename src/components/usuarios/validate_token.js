@@ -7,13 +7,11 @@ const verifyToken = (req, res, next) => {
     try {
         const verificar = jwt.verify(token, process.env.TOKEN_SECRET)
         req.user = verificar
+        
         next() //continuamos
     } catch (error) {
         res.status(400).json({error: true, mensaje: 'El token no es válido'})
     }
 }
-
-
-
 
 export default verifyToken;

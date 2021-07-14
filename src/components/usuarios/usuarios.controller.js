@@ -47,7 +47,7 @@ export const registerUsuario = async (req, res) => {
 }
 
 
-const validateUsuario = async (req,res,usuario) => {
+export const validateUsuario = async (req,res,usuario) => {
 
     try {
 
@@ -188,22 +188,90 @@ export const updateRol = async (req,res) => {
     }
 }
 
-// export const logout = (req,res) => {
+export const logout = async (req,res) => {
     
-//     const authHeader = req.headers["authorize"];
-    
-//     // const user = {
-//     //     "usuario": "",
-//     //     "rol": ""
-//     // };
-//     //const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife});
-    
-//     jwt.sign(authHeader, "", { expiresIn: 1 } , (logout, err) => {
-//         if (logout) {
-//             res.send({mensaje: 'Logout exitoso' });
-//         } else {
-//             res.send({error: true, mensaje:'Error en el logout.'});
-//         }
-//     });
-// }
+    const authHeader = req.headers["authorize"];
+    // console.log(authHeader);
+    // const user = {
+    //     "usuario": "",
+    //     "rol": ""
+    // };
+    //const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife});
+    // console.log(authHeader);
+    // jwt.sign(authHeader, "", { expiresIn: 1 } , (logout, err) => {
+    //     if (logout) {
+    //         res.send({mensaje: 'Logout exitoso' });
+    //     } else {
+    //         res.send({error: true, mensaje:'Error en el logout.'});
+    //     }
+    // });
+}
 
+
+
+export const changePassword = async (req,res) => {
+
+    const { contraseña, contraseñaNueva, id, token } = req.body;
+    const usuario = req.user.usuario
+    try {
+        const result = await validateUsuario(req,res,usuario);
+        
+        if (result){
+            
+            const validate = await validatePassword(req,res,usuario,contraseña);
+            
+            if (validate){
+
+                 //hash contraseña
+                const salt = await bcrypt.genSalt(10);
+                const password = await bcrypt.hash(contraseñaNueva, salt);
+                
+                const pool = await getConnection();
+                const respuesta = await pool.request()
+                    .input('id',sql.VarChar, id)
+                    .input('contraseña',sql.VarChar, password)
+                    .query(queries.updateContraseña);
+             
+                    if (respuesta.rowsAffected > 0){
+                        res.json({
+                            error: null,
+                            mensaje: "Contraseña actualizada."
+                        });
+                    }
+                    else{
+                        return res.status(400).json({
+                            error: true,
+                            mensaje: 'Error al cambiar la contraseña.'
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+}
+
+
+
+const validatePassword = async (req,res,usuario,contraseña) => {
+
+    try {
+
+        const pool = await getConnection();
+        const user = await pool.request()
+            .input('usuario', sql.VarChar, usuario)
+            .query(queries.findUsuarioByUser);
+        
+        const isValid = await bcrypt.compare(contraseña, user.recordset[0].contraseña);
+        if (isValid){
+            return true;
+        }
+        else{
+            return false;
+        }
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+}

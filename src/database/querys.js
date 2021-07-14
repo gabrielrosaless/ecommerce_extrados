@@ -10,7 +10,7 @@ export const queries =  {
     //Usuarios
     registerUsuario: 'INSERT INTO Usuario (usuario,contraseña,rol) VALUES (@usuario,@contraseña,2)',
     findUsuarioByUser: 'SELECT Id,usuario,contraseña,rol FROM Usuario Where usuario = @usuario',
-    updateRol: 'UPDATE Usuario SET rol = 1 WHERE Id = @Id'
-
+    updateRol: 'UPDATE Usuario SET rol = 1 WHERE Id = @Id',
+    updateContraseña: 'UPDATE Usuario SET contraseña = @contraseña WHERE Id = @Id'
 
 }
