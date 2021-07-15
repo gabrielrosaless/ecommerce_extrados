@@ -8,11 +8,29 @@ export const getProductos = async (req,res) => {
         const pool = await getConnection(); //llamo a la bd
         const result = await pool.request().query(queries.getAllProductos); // ejecuto la consulta
         res.json(result.recordset);
+
     } catch (error) {
         res.status(400);
         res.send(error.message);
     }
 };
+
+export const getProductoById = async (req,res) => {
+
+    const{ id } = req.params;
+
+    try {
+        const pool = await getConnection(); 
+        const result = await pool.request()
+        .input('id',sql.Int, id)
+        .query(queries.getProductoByID);
+         
+        res.json(result.recordset);
+    } catch (error) {
+        res.status(400);
+        res.send(error.message);
+    }
+}
 
 
 export const createProducto = async (req, res) => {

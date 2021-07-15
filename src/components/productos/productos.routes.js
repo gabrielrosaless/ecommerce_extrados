@@ -1,16 +1,19 @@
 import {Router} from 'express';
-import { createProducto, getProductos, updateProductoById, deleteProductoById } from './productos.controller';
+import { createProducto, getProductos, updateProductoById, deleteProductoById, getProductoById } from './productos.controller';
+import verifyToken  from '../usuarios/validate_token';
 
 const router = Router();
 
 router.get('/', getProductos);
 
-router.post('/add', createProducto );
+router.get('/item/:id', getProductoById)
 
-router.put('/update/:id', updateProductoById );
+router.post('/add',verifyToken, createProducto );
+
+router.put('/update/:id',verifyToken, updateProductoById );
 
 
-router.put('/delete/:id', deleteProductoById );
+router.delete('/delete/:id',verifyToken, deleteProductoById );
 
 
 

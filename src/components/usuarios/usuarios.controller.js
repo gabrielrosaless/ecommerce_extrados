@@ -7,7 +7,6 @@ const bcrypt = require('bcrypt');
 //tokenList
 const tokenList = {}
 
-
 export const registerUsuario = async (req, res) => {
     
     const {usuario, contraseña} = req.body;
@@ -75,9 +74,11 @@ export const login = async (req, res) => {
         
     // validaciones
     const { usuario, contraseña } = req.body;
+    
     if (usuario == null || contraseña == null){
         return res.status(400).json({ error: 'Bad request. Por favor complete los campos.'});
     }     
+    
     const result = await validateUsuario(req,res,usuario);
 
     if (result){
