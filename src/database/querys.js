@@ -5,7 +5,7 @@ export const queries =  {
     updateProductoById: 
         'UPDATE Producto SET nombre = @nombre, descripcion = @descripcion, imagen = @imagen, precio = @precio, marca = @marca, stock = @stock WHERE Id = @Id',
     deleteProductoById: 'UPDATE Producto SET activo = 0 WHERE Id = @Id',
-    getProductoByID: 'SELECT nombre,descripcion,imagen,precio,marca,stock FROM Producto WHERE Id = @Id',
+    getProductoByID: 'SELECT Id,nombre,descripcion,imagen,precio,marca,stock FROM Producto WHERE Id = @Id',
 
 
     //Usuarios
