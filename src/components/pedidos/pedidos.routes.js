@@ -4,7 +4,7 @@ import verifyToken  from '../usuarios/validate_token';
 
 const router = Router();
 
-router.post('/create', verifyToken, createPedido); // lista de productos
+router.post('/create', verifyToken, createPedido); // creo un pedido
 
 router.get('/getPedidos', verifyToken, getPedidos) //obtiene los pedidos, 
 //                                     //si es admin obtiene todos, si es usuario obtiene solo los suyos

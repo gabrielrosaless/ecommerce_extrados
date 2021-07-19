@@ -9,16 +9,16 @@ export const createPedido = async (req, res, next) => {
     if(productos==null || fecha == null || total == null){
          return next(new ErrorHandler('Bad request. Faltan datos para el pedido.', 400));
     }
-
+    
     if (req.user.rol == 2){ //rol usuario
         try {
             const pool = await getConnection();
-
+            
             const result = await pool.request()
                 .input('fecha', sql.DateTime, fecha)
                 .input('total', sql.Float,total)
                 .query(queries.insertPedido);
-           
+            
             for (let i = 0; i < productos.length; i++) {
                 // const element = array[i];
                 await pool.request()
@@ -31,10 +31,11 @@ export const createPedido = async (req, res, next) => {
             res.json({ productos, fecha, total });
             
         } catch (error) {
-            return next(new ErrorHandler('Error al crear el pedido.', 400))
-            // res.status(400);
-            // res.send(error.message);
+            return next(new ErrorHandler(error.message, 500));
         }
+    }
+    else{
+        return next(new ErrorHandler('El usuario es admin. No puede tomar pedidos.', 400));
     }
 }
 
@@ -50,8 +51,7 @@ export const getPedidos = async (req,res,next) => {
             res.json(result.recordset);
     
         } catch (error) {
-            res.status(400);
-            res.send(error.message);
+            return next(new ErrorHandler(error.message, 500));
         }
     }
 }

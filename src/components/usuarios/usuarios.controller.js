@@ -1,26 +1,25 @@
 import {getConnection , sql, queries } from '../../database';
 import config from '../../config';
 const jwt = require('jsonwebtoken');
+import ErrorHandler from '../../utils/errorHandler';
 
 // constraseña
 const bcrypt = require('bcrypt');
 //tokenList
 const tokenList = {}
 
-export const registerUsuario = async (req, res) => {
+export const registerUsuario = async (req,res,next) => {
     
     const {usuario, contraseña} = req.body;
     
     if (usuario == null || contraseña == null){
-        return res.status(400).json({error: 'Bad request. Por favor complete los campos.'});
+        return next(new ErrorHandler('Bad request. Por favor complete los campos.', 400));
     }
 
-    const result = await validateUsuario(req,res,usuario);
+    const result = await validateUsuario(req,res,next,usuario);
     
     if (result){
-        return res.status(400).json(
-            {error: 'Usuario ya registrado'}
-        ); 
+        return next(new ErrorHandler('Usuario ya registrado.', 403));
     };
 
     //hash contraseña
@@ -35,18 +34,17 @@ export const registerUsuario = async (req, res) => {
             .query(queries.registerUsuario);
 
         res.json({
-            error: null,
+            success: true,
             data: {usuario, password}
         });
 
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
 
-export const validateUsuario = async (req,res,usuario) => {
+export const validateUsuario = async (req,res,next,usuario) => {
 
     try {
 
@@ -61,8 +59,7 @@ export const validateUsuario = async (req,res,usuario) => {
             return user.recordset[0];
         }
     } catch (error) {
-        res.status(500);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
@@ -70,23 +67,20 @@ export const validateUsuario = async (req,res,usuario) => {
 
 
 
-export const login = async (req, res) => {
+export const login = async (req, res,next) => {
         
     // validaciones
     const { usuario, contraseña } = req.body;
     
     if (usuario == null || contraseña == null){
-        return res.status(400).json({ error: 'Bad request. Por favor complete los campos.'});
+        return next(new ErrorHandler('Bad request. Por favor complete los campos.', 400));
     }     
     
-    const result = await validateUsuario(req,res,usuario);
+    const result = await validateUsuario(req,res,next,usuario);
 
     if (result){
         const validPassword = await bcrypt.compare(req.body.contraseña, result.contraseña);
-        if (!validPassword) return res.status(400).json({
-            error: true,
-            mensaje: 'Contraseña no valida!'
-        });
+        if (!validPassword) return next(new ErrorHandler('Contraseña incorrecta', 401));
         
         const user = {
             "usuario": usuario,
@@ -98,7 +92,7 @@ export const login = async (req, res) => {
         const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: config.refreshTokenLife});
     
         res.header('authorize', token).json({
-            error: null,
+            success: true,
             status: "Logeo exitoso.",
             token: token,
             refreshToken: refreshToken
@@ -112,18 +106,16 @@ export const login = async (req, res) => {
         // });
     }
     else{
-        return res.status(400).json({
-            error: true,
-            mensaje: 'Usuario no encontrado.'
-        });
+        return next(new ErrorHandler('Usuario no encontrado.', 400));
     }
 }
 
 
-export const refreshToken = (req,res) => {
+export const refreshToken = (req,res,next) => {
     // refresh the damn token
-    const {usuario, rol ,refreshToken} = req.body
-    
+    const {refreshToken} = req.body;
+    const rol = req.user.rol;
+    const usuario = req.user.usuario;
     // if refresh token exists
     if((tokenList[refreshToken] == usuario) && (refreshToken in tokenList)) {
         
@@ -134,29 +126,26 @@ export const refreshToken = (req,res) => {
         const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife})
 
         const response = {
+            success: true,
             "token": token,
         }
 
         res.status(200).json(response);    
     
     } else {
-        res.status(404).send({
-            error: true,
-            mensaje: 'No se pudo refrescar el token.'
-        });
+        return next(new ErrorHandler('No se pudo refrescar el token.', 400));
     }
 }
 
 
 
-export const updateRol = async (req,res) => {
+export const updateRol = async (req,res,next) => {
         
     const{ id } = req.params;
-    const{ usuario } = req.body;
-
+    
     try {
         
-        const result = await validateUsuario(req,res,usuario);
+        const result = await validateUsuario(req,res,next,req.user.usuario);
         
         if(result && result.rol == 1){
             const pool = await getConnection();
@@ -166,26 +155,19 @@ export const updateRol = async (req,res) => {
             
             if (respuesta.rowsAffected > 0){
                 res.json({
-                    error: null,
+                    success: true,
                     mensaje: "Rol actualizado."
                 });
             }
             else{
-                return res.status(400).json({
-                    error: true,
-                    mensaje: 'El usuario al que desea cambiar el rol no existe.'
-                });
+                return next(new ErrorHandler('El usuario al que desea cambiar el rol no existe.', 400));
             }   
         }
         else{
-            return res.status(400).json({
-                error: true,
-                mensaje: 'Acción no autorizada.'
-            });
+            return next(new ErrorHandler('Acción no autorizada.', 403));
         }
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
@@ -210,19 +192,21 @@ export const logout = async (req,res) => {
 
 
 
-export const changePassword = async (req,res) => {
+export const changePassword = async (req,res,next) => {
 
     const { contraseña, contraseñaNueva, id, token } = req.body;
     const usuario = req.user.usuario
+    const authorize = req.get('authorize')
+
     try {
-        const result = await validateUsuario(req,res,usuario);
+        const result = await validateUsuario(req,res,next,usuario);
         
-        if (result){
+        if (result && token === authorize){
             
-            const validate = await validatePassword(req,res,usuario,contraseña);
+            const validate = await validatePassword(req,res,next,usuario,contraseña);
             
             if (validate){
-
+                console.log(3);
                  //hash contraseña
                 const salt = await bcrypt.genSalt(10);
                 const password = await bcrypt.hash(contraseñaNueva, salt);
@@ -235,27 +219,29 @@ export const changePassword = async (req,res) => {
              
                     if (respuesta.rowsAffected > 0){
                         res.json({
-                            error: null,
+                            success: true,
                             mensaje: "Contraseña actualizada."
                         });
                     }
                     else{
-                        return res.status(400).json({
-                            error: true,
-                            mensaje: 'Error al cambiar la contraseña.'
-                    });
+                        return next(new ErrorHandler('Error al actualizar la contraseña.', 400));
                 }
             }
+            else{
+                return next(new ErrorHandler('Contraseña actual incorrecta.', 403));
+            }
+        }
+        else{
+            return next(new ErrorHandler('Error! Revise los datos.', 400));
         }
     } catch (error) {
-        res.status(500);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
 
 
-const validatePassword = async (req,res,usuario,contraseña) => {
+const validatePassword = async (req,res,next,usuario,contraseña) => {
 
     try {
 
@@ -272,7 +258,6 @@ const validatePassword = async (req,res,usuario,contraseña) => {
             return false;
         }
     } catch (error) {
-        res.status(500);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }

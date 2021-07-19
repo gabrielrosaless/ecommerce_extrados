@@ -1,8 +1,8 @@
 
 import {getConnection , sql, queries } from '../../database';
+import ErrorHandler from '../../utils/errorHandler';
 
-
-export const getProductos = async (req,res) => {
+export const getProductos = async (req,res,next) => {
 
     try {
         const pool = await getConnection(); //llamo a la bd
@@ -10,12 +10,11 @@ export const getProductos = async (req,res) => {
         res.json(result.recordset);
 
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 };
 
-export const getProductoById = async (req,res) => {
+export const getProductoById = async (req,res,next) => {
 
     const{ id } = req.params;
 
@@ -27,19 +26,18 @@ export const getProductoById = async (req,res) => {
          
         res.json(result.recordset);
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
 
-export const createProducto = async (req, res) => {
+export const createProducto = async (req, res,next) => {
     
     const {nombre, descripcion, imagen, precio, marca} = req.body;
     let {stock} = req.body;
     
     if(nombre==null || descripcion == null || precio == null || marca == null){
-        return res.status(400).json({mensaje: 'Bad request. Por favor llena todo los campos.'})
+        return next(new ErrorHandler('Bad request. Por favor llena todo los campos.', 400));
     }
 
     if (stock == null) stock = 0;
@@ -59,24 +57,23 @@ export const createProducto = async (req, res) => {
             res.json({nombre, descripcion, imagen, precio, marca});
         }
         else{
-            return res.status(400).json({mensaje: 'El usuario no es admin. No puede agregar productos.'})
+            return next(new ErrorHandler('El usuario no es admin. No puede agregar productos.', 403));   
         }
         
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
 
-export const updateProductoById = async (req,res) => {
+export const updateProductoById = async (req,res,next) => {
 
     const {nombre, descripcion, imagen, precio, marca, stock} = req.body;
     
     const{ id } = req.params;
 
     if(nombre==null || descripcion == null || precio == null || marca == null || stock== null){
-        return res.status(400).json({mensaje: 'Bad request. Por favor llena todo los campos.'})
+        return next(new ErrorHandler('Bad request. Por favor llena todo los campos.', 400));
     }
 
     try {
@@ -96,18 +93,17 @@ export const updateProductoById = async (req,res) => {
             res.json({nombre, descripcion, imagen, precio, marca});
         }
         else{
-            return res.status(400).json({mensaje: 'El usuario no es admin. No puede editar productos.'});
+            return next(new ErrorHandler('El usuario no es admin. No puede editar productos.', 403));
         }
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
     
 
 };
 
 
-export const deleteProductoById = async (req,res) => {
+export const deleteProductoById = async (req,res,next) => {
 
     const{ id } = req.params;
 
@@ -118,14 +114,16 @@ export const deleteProductoById = async (req,res) => {
                 .input('id',sql.Int, id)
                 .query(queries.deleteProductoById);
     
-            res.json("Producto dado de baja.")
+            res.json({
+                success: true,
+                mensaje: 'Producto dado de baja.'
+            })
         }
         else{
-            return res.status(400).json({mensaje: 'El usuario no es admin. No puede dar de baja productos.'});
+            return next(new ErrorHandler('El usuario no es admin. No puede dar de baja productos.', 403));
         }
         
     } catch (error) {
-        res.status(400);
-        res.send(error.message);
+        return next(new ErrorHandler(error.message, 500));
     }
 };

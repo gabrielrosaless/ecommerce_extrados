@@ -16,7 +16,7 @@ export const queries =  {
 
 
     //Pedidos
-    insertPedido: 'INSERT INTO Pedido (fecha,total) VALUES (@fecha,@total); SELECT SCOPE_IDENTITY() AS id;',
+    insertPedido: 'INSERT INTO Pedido (fecha,total) VALUES (CONVERT(varchar,@fecha,103),@total); SELECT SCOPE_IDENTITY() AS id;',
     insertDetallePedido: 'INSERT INTO DetallePedido (IdPedido, IdProducto, cantidad) VALUES (@IdPedido,@IdProducto,@cantidad)',
     getPedidosXUsuario: 'select p.ID,p.idUsuario,p.fecha,p.total,dp.IdProducto, pro.nombre,pro.descripcion,pro.precio,dp.cantidad' +
                     ' FROM Pedido p' + 
