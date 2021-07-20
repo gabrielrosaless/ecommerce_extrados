@@ -36,7 +36,7 @@ export const createProducto = async (req, res,next) => {
     const {nombre, descripcion, imagen, precio, marca} = req.body;
     let {stock} = req.body;
     
-    if(nombre==null || descripcion == null || precio == null || marca == null){
+    if(nombre==null || nombre == "" || descripcion == null || descripcion == "" || precio == "" || precio == null || marca == "" || marca == null){
         return next(new ErrorHandler('Bad request. Por favor llena todo los campos.', 400));
     }
 
