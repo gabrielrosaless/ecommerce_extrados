@@ -194,14 +194,14 @@ export const logout = async (req,res) => {
 
 export const changePassword = async (req,res,next) => {
 
-    const { contraseña, contraseñaNueva, id, token } = req.body;
+    const { contraseña, contraseñaNueva, id } = req.body;
     const usuario = req.user.usuario
-    const authorize = req.get('authorize')
+    
 
     try {
         const result = await validateUsuario(req,res,next,usuario);
-        
-        if (result && token === authorize){
+       
+        if (result && result.Id == id){
             
             const validate = await validatePassword(req,res,next,usuario,contraseña);
             
