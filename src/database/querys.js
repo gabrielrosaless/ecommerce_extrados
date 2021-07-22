@@ -1,6 +1,6 @@
 export const queries =  {
     //Productos
-    getAllProductos: 'SELECT * FROM Producto',
+    getAllProductos: 'select * from Producto order by Id offset (@skip) rows fetch next (@size) rows only',
     addProducto: 'INSERT INTO Producto (nombre,descripcion,imagen,precio,marca,stock) VALUES (@nombre,@descripcion,@imagen,@precio,@marca,@stock)',
     updateProductoById: 
         'UPDATE Producto SET nombre = @nombre, descripcion = @descripcion, imagen = @imagen, precio = @precio, marca = @marca, stock = @stock WHERE Id = @Id',
@@ -17,14 +17,20 @@ export const queries =  {
 
 
     //Pedidos
-    insertPedido: 'INSERT INTO Pedido (fecha,total,idUsuario,isActive) VALUES (CONVERT(VARCHAR,@fecha,103),@total,@idUsuario,@isActive); SELECT SCOPE_IDENTITY() AS id;',
+    insertPedido: 'INSERT INTO Pedido (fecha,total,idUsuario,isActive) VALUES (convert(datetime, getdate(), 103),@total,@idUsuario,@isActive); SELECT SCOPE_IDENTITY() AS id;',
     insertDetallePedido: 'INSERT INTO DetallePedido (IdPedido, IdProducto, cantidad) VALUES (@IdPedido,@IdProducto,@cantidad)',
     getPedidosXUsuario: 'select p.ID,p.idUsuario,p.fecha,p.total,dp.IdProducto, pro.nombre,pro.descripcion,pro.precio,dp.cantidad' +
                     ' FROM Pedido p' + 
                     ' LEFT JOIN DetallePedido dp on dp.IdPedido = p.Id' + 
                     ' LEFT JOIN Producto pro on pro.Id = dp.IdProducto' +  
                     ' LEFT JOIN Usuario u on u.Id = p.idUsuario'+  
-                    ' WHERE u.usuario = @usuario' +
+                    ' WHERE u.usuario = @usuario AND p.isActive = 1' +
                     ' ORDER BY p.fecha desc',
-    deletePedidoById: 'UPDATE Pedido SET isActive = 0 WHERE Id = @Id'
+    deletePedidoById: 'UPDATE Pedido SET isActive = 0 WHERE Id = @Id',
+    getPedidos: 'SELECT p.ID,p.idUsuario,p.fecha,p.total,dp.IdProducto, pro.nombre,pro.descripcion,pro.precio,dp.cantidad' + 
+                ' FROM Pedido p' +
+                ' LEFT JOIN DetallePedido dp on dp.IdPedido = p.Id' + 
+                ' LEFT JOIN Producto pro on pro.Id = dp.IdProducto' +  
+                ' LEFT JOIN Usuario u on u.Id = p.idUsuario'+
+                ' where p.isActive = 1 ORDER BY fecha desc'
 }

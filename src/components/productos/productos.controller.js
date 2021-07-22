@@ -4,9 +4,16 @@ import ErrorHandler from '../../utils/errorHandler';
 
 export const getProductos = async (req,res,next) => {
 
+    
+    var {size,page} = req.query;
+    const skip = (size * page) - size;
+
     try {
         const pool = await getConnection(); //llamo a la bd
-        const result = await pool.request().query(queries.getAllProductos); // ejecuto la consulta
+        const result = await pool.request()
+        .input('size',sql.Int, size)
+        .input('skip',sql.Int, skip)
+        .query(queries.getAllProductos); // ejecuto la consulta
         res.json(result.recordset);
 
     } catch (error) {

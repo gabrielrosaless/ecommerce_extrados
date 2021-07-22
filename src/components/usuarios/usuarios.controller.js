@@ -12,8 +12,8 @@ export const registerUsuario = async (req,res,next) => {
     
     const {usuario, contraseña} = req.body;
     
-    if (usuario == null || contraseña == null){
-        return next(new ErrorHandler('Bad request. Por favor complete los campos.', 400));
+    if (usuario == null || contraseña == null || usuario == "" || contraseña == ""){
+        return next(new ErrorHandler('Por favor complete todos los campos.', 400));
     }
 
     const result = await validateUsuario(req,res,next,usuario);
@@ -80,7 +80,7 @@ export const login = async (req, res,next) => {
 
     if (result){
         const validPassword = await bcrypt.compare(req.body.contraseña, result.contraseña);
-        if (!validPassword) return next(new ErrorHandler('Contraseña incorrecta', 401));
+        if (!validPassword) return next(new ErrorHandler('Usuario y/o contraseña incorrecto', 401));
         
         const user = {
             "usuario": usuario,
@@ -206,7 +206,6 @@ export const changePassword = async (req,res,next) => {
             const validate = await validatePassword(req,res,next,usuario,contraseña);
             
             if (validate){
-                console.log(3);
                  //hash contraseña
                 const salt = await bcrypt.genSalt(10);
                 const password = await bcrypt.hash(contraseñaNueva, salt);

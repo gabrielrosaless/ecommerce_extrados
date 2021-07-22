@@ -1,14 +1,35 @@
 import {getConnection , sql, queries } from '../../database';
 import ErrorHandler from '../../utils/errorHandler';
+const jwt = require('jsonwebtoken');
+
+const calcularTotal = async (productos) => {
+
+    const pool = await getConnection();
+    let total = 0;
+    for (let i = 0; i < productos.length; i++) {
+        // Busco el precio del producto
+        const result = await pool.request()
+        .input('Id',sql.Int, productos[i].idProducto)
+        .query(queries.getProductoByID);
+
+        total += result.recordset[0].precio * productos[i].cantidad
+        
+    }
+
+    return total
+}
 
 
 export const createPedido = async (req,res,next) => {
 
-    const { productos, fecha, total } = req.body;
+    const { productos } = req.body;
 
-    if(productos==null || fecha == null || total == null){
+    if(productos==null){
         return next(new ErrorHandler('Bad request. Faltan datos para el pedido.', 400));
     }
+
+    const total = await calcularTotal(productos);
+    
     const pool = await getConnection();
     const transaction = await new sql.Transaction(pool)
     
@@ -16,8 +37,7 @@ export const createPedido = async (req,res,next) => {
       try{
         const request = new sql.Request(transaction)
         const result = await request.input('usuario', sql.VarChar, req.user.usuario).query(queries.getUsuarioByUser);
-        const result2 = await request.input('fecha', sql.DateTime, fecha)
-                                    .input('total', sql.Float,total)
+        const result2 = await request.input('total', sql.Float,total)
                                     .input('idUsuario', sql.Int, result.recordset[0].Id)
                                     .input('isActive', sql.Bit, true)
                                     .query(queries.insertPedido);    
@@ -33,7 +53,7 @@ export const createPedido = async (req,res,next) => {
 
         transaction.commit(err => {
             // ... error checks
-            res.json({ productos, fecha, total });
+            res.json({ productos, total });
             console.log("Transaction committed.")
         })
       }catch(err){
@@ -49,6 +69,19 @@ export const createPedido = async (req,res,next) => {
 export const getPedidos = async (req,res,next) => {
 
     if (req.user.rol == 1){ //rol admin
+        try {
+            const pool = await getConnection()
+            const result = await pool.request()
+            .input('usuario',sql.VarChar, req.user.usuario)
+            .query(queries.getPedidos); 
+            res.json(result.recordset);
+    
+        } catch (error) {
+            return next(new ErrorHandler(error.message, 500));
+        }
+    }
+    else if (req.user.rol == 2){ //rol usuario
+
         try {
             const pool = await getConnection()
             const result = await pool.request()
