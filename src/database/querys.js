@@ -1,7 +1,7 @@
 export const queries =  {
     //Productos
-    getAllProductos: 'select * from Producto order by Id offset (@skip) rows fetch next (@size) rows only',
-    addProducto: 'INSERT INTO Producto (nombre,descripcion,imagen,precio,marca,stock) VALUES (@nombre,@descripcion,@imagen,@precio,@marca,@stock)',
+    getAllProductos: 'select * from Producto WHERE activo = 1 order by Id offset (@skip) rows fetch next (@size) rows only',
+    addProducto: 'INSERT INTO Producto (nombre,descripcion,imagen,precio,marca,stock,activo) VALUES (@nombre,@descripcion,@imagen,@precio,@marca,@stock,1)',
     updateProductoById: 
         'UPDATE Producto SET nombre = @nombre, descripcion = @descripcion, imagen = @imagen, precio = @precio, marca = @marca, stock = @stock WHERE Id = @Id',
     deleteProductoById: 'UPDATE Producto SET activo = 0 WHERE Id = @Id',

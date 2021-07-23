@@ -6,13 +6,13 @@ export const getProductos = async (req,res,next) => {
 
     
     var {size,page} = req.query;
-    const skip = (size * page) - size;
-
+    var skip = (size * page) - size;
+    if (skip < 0) skip = 0;
     try {
         const pool = await getConnection(); //llamo a la bd
         const result = await pool.request()
-        .input('size',sql.Int, size)
-        .input('skip',sql.Int, skip)
+        .input('size',sql.Int, size || 8)
+        .input('skip',sql.Int, skip || 0)
         .query(queries.getAllProductos); // ejecuto la consulta
         res.json(result.recordset);
 
