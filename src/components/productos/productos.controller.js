@@ -3,11 +3,12 @@ import {getConnection , sql, queries } from '../../database';
 import ErrorHandler from '../../utils/errorHandler';
 
 export const getProductos = async (req,res,next) => {
-
-    
+ 
     var {size,page} = req.query;
     var skip = (size * page) - size;
+    // if (skip === 0) skip = 1;
     if (skip < 0) skip = 0;
+    
     try {
         const pool = await getConnection(); //llamo a la bd
         const result = await pool.request()
@@ -20,6 +21,34 @@ export const getProductos = async (req,res,next) => {
         return next(new ErrorHandler(error.message, 500));
     }
 };
+
+export const getAllProducts = async (req,res,next) => {
+ 
+    
+    try {
+        const pool = await getConnection(); //llamo a la bd
+        const result = await pool.request()
+        .query(queries.getAllProducts); // ejecuto la consulta
+        res.json(result.recordset);
+
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+};
+
+
+export const getTotalProductos = async (req,res,next) => {
+    
+    try {
+        const pool = await getConnection(); 
+        const result = await pool.request()
+        .query(queries.getTotalProductos); 
+        res.json(result.recordset);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+
+}
 
 export const getProductoById = async (req,res,next) => {
 
