@@ -53,7 +53,7 @@ export const createPedido = async (req,res,next) => {
 
         transaction.commit(err => {
             // ... error checks
-            res.json({ productos, total });
+            res.json(result2.recordset);
             console.log("Transaction committed.")
         })
       }catch(err){
