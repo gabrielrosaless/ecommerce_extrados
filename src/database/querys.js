@@ -15,6 +15,9 @@ export const queries =  {
     updateRol: 'UPDATE Usuario SET rol = 1 WHERE Id = @Id',
     updateContraseña: 'UPDATE Usuario SET contraseña = @contraseña WHERE Id = @Id',
     getUsuarioByUser: 'SELECT Id,usuario From Usuario WHERE usuario = @usuario',
+    insertToken: 'INSERT INTO BlackList (token) VALUES(@token)',
+    insertRefreshToken: 'INSERT INTO BlackList (token) VALUES(@reftoken)',
+    findTokenInBlackList:'SELECT token From BlackList WHERE token = @token',
 
 
     //Pedidos
@@ -33,5 +36,6 @@ export const queries =  {
                 ' LEFT JOIN DetallePedido dp on dp.IdPedido = p.Id' + 
                 ' LEFT JOIN Producto pro on pro.Id = dp.IdProducto' +  
                 ' LEFT JOIN Usuario u on u.Id = p.idUsuario'+
-                ' where p.isActive = 1 ORDER BY fecha desc'
+                ' where p.isActive = 1 ORDER BY fecha desc',
+    reduceStockProducto: 'UPDATE Producto SET stock = (stock-@cantidad) WHERE Id = @idProducto'
 }

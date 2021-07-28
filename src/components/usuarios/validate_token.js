@@ -1,6 +1,4 @@
 const jwt = require('jsonwebtoken');
-import ErrorHandler from '../../utils/errorHandler';
-
 
 const verifyToken = (req, res, next) => {
     const token = req.header('authorize');
@@ -12,7 +10,7 @@ const verifyToken = (req, res, next) => {
         
         next() //continuamos
     } catch (error) {
-        return next(new ErrorHandler('El token no es válido', 400));
+        res.status(400).json({error: true, mensaje: 'El token no es válido'})
     }
 }
 

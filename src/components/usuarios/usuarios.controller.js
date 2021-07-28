@@ -2,6 +2,8 @@ import {getConnection , sql, queries } from '../../database';
 import config from '../../config';
 const jwt = require('jsonwebtoken');
 import ErrorHandler from '../../utils/errorHandler';
+import findTokenInDB from '../../utils/token_logout';
+
 
 // constraseña
 const bcrypt = require('bcrypt');
@@ -111,30 +113,51 @@ export const login = async (req, res,next) => {
 }
 
 
-export const refreshToken = (req,res,next) => {
-    // refresh the damn token
-    const {refreshToken} = req.body;
+export const refreshToken = async (req,res,next) => {
+    
     const rol = req.user.rol;
     const usuario = req.user.usuario;
-    // if refresh token exists
-    if((tokenList[refreshToken] == usuario) && (refreshToken in tokenList)) {
-        
-        const user = {
-            "usuario": usuario,
-            "rol": rol
-        }
-        const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife})
 
-        const response = {
-            success: true,
-            "token": token,
-        }
+    const authHeader = req.headers["authorize"];
+    const bool = await findTokenInDB(req,res,next,authHeader);
 
-        res.status(200).json(response);    
-    
-    } else {
-        return next(new ErrorHandler('No se pudo refrescar el token.', 400));
+    if (!bool){
+
+        // refresh the damn token
+        const {refreshToken} = req.body;
+
+        const refreshValid = await findTokenInDB(req,res,next,refreshToken);
+
+        if (!refreshValid) {
+            // if refresh token exists
+            if((tokenList[refreshToken] == usuario) && (refreshToken in tokenList)) {
+                
+                const user = {
+                    "usuario": usuario,
+                    "rol": rol
+                }
+                const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife})
+
+                const response = {
+                    success: true,
+                    "token": token,
+                }
+
+                res.status(200).json(response);    
+            
+            } 
+            else {
+                return next(new ErrorHandler('No se pudo refrescar el token.', 400));
+            }
+        }
+        else{
+            return next(new ErrorHandler('El refresh token es inutilizable.', 400));
+        }
     }
+    else{
+        return next(new ErrorHandler('El token es inutilizable.', 400));
+    }
+    
 }
 
 
@@ -142,99 +165,140 @@ export const refreshToken = (req,res,next) => {
 export const updateRol = async (req,res,next) => {
         
     const{ id } = req.params;
-    
-    try {
-        
-        const result = await validateUsuario(req,res,next,req.user.usuario);
-        
-        if(result && result.rol == 1){
-            const pool = await getConnection();
-            const respuesta = await pool.request()
-                .input('id',sql.Int, id)
-                .query(queries.updateRol);
-            
-            if (respuesta.rowsAffected > 0){
-                res.json({
-                    success: true,
-                    mensaje: "Rol actualizado."
-                });
+
+    const authHeader = req.headers["authorize"];
+    const bool = await findTokenInDB(req,res,next,authHeader);
+
+    if (!bool){
+        try {
+            const result = await validateUsuario(req,res,next,req.user.usuario);
+
+            if(result && result.rol == 1){
+                const pool = await getConnection();
+                const respuesta = await pool.request()
+                    .input('id',sql.Int, id)
+                    .query(queries.updateRol);
+                
+                if (respuesta.rowsAffected > 0){
+                    res.json({
+                        success: true,
+                        mensaje: "Rol actualizado."
+                    });
+                }
+                else{
+                    return next(new ErrorHandler('El usuario al que desea cambiar el rol no existe.', 400));
+                }   
             }
             else{
-                return next(new ErrorHandler('El usuario al que desea cambiar el rol no existe.', 400));
-            }   
+                return next(new ErrorHandler('Acción no autorizada.', 403));
+            }
+        } catch (error) {
+            return next(new ErrorHandler(error.message, 500));
         }
-        else{
-            return next(new ErrorHandler('Acción no autorizada.', 403));
-        }
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+    }
+    else{
+        return next(new ErrorHandler('El token es inutilizable.', 400));
+    }
+    
+}
+
+export const logout = async (req,res,next) => {
+    
+    const authHeader = req.headers["authorize"];
+    
+    const { refreshTok } = req.body;
+
+    const bool = await findTokenInDB(req,res,next,authHeader);
+    
+    if (!bool){
+        const pool = await getConnection();
+        const transaction = await new sql.Transaction(pool);
+    
+        transaction.begin(async err => {
+          try{
+            const request = new sql.Request(transaction)
+            
+            const result = await request.input('token', sql.VarChar,authHeader).query(queries.insertToken);    
+            
+            const result2 = await request.input('reftoken', sql.VarChar,refreshTok).query(queries.insertRefreshToken);    
+            
+            transaction.commit(err => {
+                // ... error checks
+                // res.json(result2.recordset);
+                res.json({
+                    result,
+                    result2
+                })
+                console.log("Transaction committed.")
+            })
+          }
+          catch(err){
+            transaction.rollback(tErr => tErr && next(new ErrorHandler('transaction rollback error',400)))
+            return next(new ErrorHandler(err.message, 400));
+            
+          }
+        })
+    }
+    else{
+        return next(new ErrorHandler('El token es inutilizable.', 400));
     }
 }
 
-export const logout = async (req,res) => {
-    
-    const authHeader = req.headers["authorize"];
-    // console.log(authHeader);
-    // const user = {
-    //     "usuario": "",
-    //     "rol": ""
-    // };
-    //const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: config.tokenLife});
-    // console.log(authHeader);
-    // jwt.sign(authHeader, "", { expiresIn: 1 } , (logout, err) => {
-    //     if (logout) {
-    //         res.send({mensaje: 'Logout exitoso' });
-    //     } else {
-    //         res.send({error: true, mensaje:'Error en el logout.'});
-    //     }
-    // });
-}
+
+
 
 
 
 export const changePassword = async (req,res,next) => {
 
     const { contraseña, contraseñaNueva, id } = req.body;
-    const usuario = req.user.usuario
-    
+    const usuario = req.user.usuario;
 
-    try {
-        const result = await validateUsuario(req,res,next,usuario);
-       
-        if (result && result.Id == id){
-            
-            const validate = await validatePassword(req,res,next,usuario,contraseña);
-            
-            if (validate){
-                 //hash contraseña
-                const salt = await bcrypt.genSalt(10);
-                const password = await bcrypt.hash(contraseñaNueva, salt);
+    const authHeader = req.headers["authorize"];
+    const bool = await findTokenInDB(req,res,next,authHeader);
+
+    if (!bool){
+        try {
+            const result = await validateUsuario(req,res,next,usuario);
+           
+            if (result && result.Id == id){
                 
-                const pool = await getConnection();
-                const respuesta = await pool.request()
-                    .input('id',sql.VarChar, id)
-                    .input('contraseña',sql.VarChar, password)
-                    .query(queries.updateContraseña);
-             
-                    if (respuesta.rowsAffected > 0){
-                        res.json({
-                            success: true,
-                            mensaje: "Contraseña actualizada."
-                        });
+                const validate = await validatePassword(req,res,next,usuario,contraseña);
+                
+                if (validate){
+                     //hash contraseña
+                    const salt = await bcrypt.genSalt(10);
+                    const password = await bcrypt.hash(contraseñaNueva, salt);
+                    
+                    const pool = await getConnection();
+                    const respuesta = await pool.request()
+                        .input('id',sql.VarChar, id)
+                        .input('contraseña',sql.VarChar, password)
+                        .query(queries.updateContraseña);
+                 
+                        if (respuesta.rowsAffected > 0){
+                            res.json({
+                                success: true,
+                                mensaje: "Contraseña actualizada."
+                            });
+                        }
+                        else{
+                            return next(new ErrorHandler('Error al actualizar la contraseña.', 400));
                     }
-                    else{
-                        return next(new ErrorHandler('Error al actualizar la contraseña.', 400));
+                }
+                else{
+                    return next(new ErrorHandler('Contraseña actual incorrecta.', 403));
                 }
             }
             else{
-                return next(new ErrorHandler('Contraseña actual incorrecta.', 403));
+                return next(new ErrorHandler('Error! Revise los datos.', 400));
             }
+        } catch (error) {
+            return next(new ErrorHandler(error.message, 500));
         }
-        else{
-            return next(new ErrorHandler('Error! Revise los datos.', 400));
-        }
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+    }
+    else{
+            return next(new ErrorHandler('El token es inutilizable.', 400));
     }
 }
 

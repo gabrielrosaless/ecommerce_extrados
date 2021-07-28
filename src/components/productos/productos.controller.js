@@ -1,6 +1,8 @@
 
 import {getConnection , sql, queries } from '../../database';
 import ErrorHandler from '../../utils/errorHandler';
+import findTokenInDB from '../../utils/token_logout';
+
 
 export const getProductos = async (req,res,next) => {
  
@@ -68,7 +70,8 @@ export const getProductoById = async (req,res,next) => {
 
 
 export const createProducto = async (req, res,next) => {
-    
+
+    const authHeader = req.headers["authorize"];
     const {nombre, descripcion, imagen, precio, marca} = req.body;
     let {stock} = req.body;
     
@@ -78,31 +81,41 @@ export const createProducto = async (req, res,next) => {
 
     if (stock == null) stock = 0;
 
-    try {
-        if (req.user.rol == 1){
-            const pool = await getConnection();
-            await pool.request()
-                .input('nombre',sql.VarChar, nombre)
-                .input('descripcion',sql.VarChar,descripcion)
-                .input('imagen',sql.VarChar,imagen)
-                .input('marca',sql.VarChar, marca)
-                .input('stock',sql.Int, stock)
-                .input('precio',sql.Float, precio)
-                .query(queries.addProducto);
-    
-            res.json({nombre, descripcion, imagen, precio, marca});
-        }
-        else{
-            return next(new ErrorHandler('El usuario no es admin. No puede agregar productos.', 403));   
-        }
+    const bool = await findTokenInDB(req,res,next,authHeader);
+
+    if (!bool){
+        try {
+            if (req.user.rol == 1){
+                const pool = await getConnection();
+                await pool.request()
+                    .input('nombre',sql.VarChar, nombre)
+                    .input('descripcion',sql.VarChar,descripcion)
+                    .input('imagen',sql.VarChar,imagen)
+                    .input('marca',sql.VarChar, marca)
+                    .input('stock',sql.Int, stock)
+                    .input('precio',sql.Float, precio)
+                    .query(queries.addProducto);
         
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+                res.json({nombre, descripcion, imagen, precio, marca});
+            }
+            else{
+                return next(new ErrorHandler('El usuario no es admin. No puede agregar productos.', 403));   
+            }
+            
+        } catch (error) {
+            return next(new ErrorHandler(error.message, 500));
+        }
     }
+    else{
+        return next(new ErrorHandler('El token es inutilizable.', 400));
+    }
+    
 }
 
 
 export const updateProductoById = async (req,res,next) => {
+
+    const authHeader = req.headers["authorize"];
 
     const {nombre, descripcion, imagen, precio, marca, stock} = req.body;
     
@@ -112,28 +125,36 @@ export const updateProductoById = async (req,res,next) => {
         return next(new ErrorHandler('Bad request. Por favor llena todo los campos.', 400));
     }
 
-    try {
+    const bool = await findTokenInDB(req,res,next,authHeader);
+
+    if (!bool){
+        try {
         
-        if (req.user.rol == 1){
-            const pool = await getConnection();
-            await pool.request()
-                .input('id',sql.Int, id)
-                .input('nombre',sql.VarChar, nombre)
-                .input('descripcion',sql.VarChar,descripcion)
-                .input('imagen',sql.VarChar,imagen)
-                .input('marca',sql.VarChar, marca)
-                .input('stock',sql.Int, stock)
-                .input('precio',sql.Float, precio)
-                .query(queries.updateProductoById);
-    
-            res.json({nombre, descripcion, imagen, precio, marca});
+            if (req.user.rol == 1){
+                const pool = await getConnection();
+                await pool.request()
+                    .input('id',sql.Int, id)
+                    .input('nombre',sql.VarChar, nombre)
+                    .input('descripcion',sql.VarChar,descripcion)
+                    .input('imagen',sql.VarChar,imagen)
+                    .input('marca',sql.VarChar, marca)
+                    .input('stock',sql.Int, stock)
+                    .input('precio',sql.Float, precio)
+                    .query(queries.updateProductoById);
+        
+                res.json({nombre, descripcion, imagen, precio, marca});
+            }
+            else{
+                return next(new ErrorHandler('El usuario no es admin. No puede editar productos.', 403));
+            }
+        } catch (error) {
+            return next(new ErrorHandler(error.message, 500));
         }
-        else{
-            return next(new ErrorHandler('El usuario no es admin. No puede editar productos.', 403));
-        }
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
     }
+    else{
+        return next(new ErrorHandler('El token es inutilizable.', 400));
+    }
+    
     
 
 };
@@ -142,24 +163,33 @@ export const updateProductoById = async (req,res,next) => {
 export const deleteProductoById = async (req,res,next) => {
 
     const{ id } = req.params;
+    const authHeader = req.headers["authorize"];
+    const bool = await findTokenInDB(req,res,next,authHeader);
 
-    try {
-        if (req.user.rol == 1){
-            const pool = await getConnection();
-            await pool.request()
-                .input('id',sql.Int, id)
-                .query(queries.deleteProductoById);
-    
-            res.json({
-                success: true,
-                mensaje: 'Producto dado de baja.'
-            })
-        }
-        else{
-            return next(new ErrorHandler('El usuario no es admin. No puede dar de baja productos.', 403));
-        }
+    if (!bool){
+        try {
+            if (req.user.rol == 1){
+                const pool = await getConnection();
+                await pool.request()
+                    .input('id',sql.Int, id)
+                    .query(queries.deleteProductoById);
         
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+                res.json({
+                    success: true,
+                    mensaje: 'Producto dado de baja.'
+                })
+            }
+            else{
+                return next(new ErrorHandler('El usuario no es admin. No puede dar de baja productos.', 403));
+            }
+            
+        } catch (error) {
+            return next(new ErrorHandler(error.message, 500));
+        }
     }
+    else{
+        return next(new ErrorHandler('El token es inutilizable.', 400));
+    }
+
+    
 };

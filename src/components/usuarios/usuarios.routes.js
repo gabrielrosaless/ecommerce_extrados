@@ -9,7 +9,7 @@ router.post('/register', registerUsuario);
 
 router.post('/login', login);
 
-// router.post('/logout', verifyToken, logout);
+router.post('/logout', verifyToken, logout);
 
 router.post('/token', verifyToken, refreshToken);
 
